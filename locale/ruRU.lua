@@ -1,0 +1,18 @@
+if GetLocale() == 'ruRU' then
+	UNITSCAN_LOADED = 'загружен. Введите /unitscan help для помощи.'
+	UNITSCAN_FOUND = 'Юнит найден!'
+	UNITSCAN_SCAN_OFF = 'сканирование отключено.'
+	UNITSCAN_SCAN_ON = 'сканирование включено.'
+	UNITSCAN_SCAN_PAUSE = 'пауза сканирования установлена на'
+	UNITSCAN_DB = 'база данных установлена на'
+	UNITSCAN_DB_NOT_SUPPORTED = 'Эта база данных не поддерживается. Поддерживаемые базы данных: enUS, deDE, frFR, koKR, esES, ruRU, zhCN, zhTW'
+	UNITSCAN_HELP_MSG1 = 'Использование:'
+	UNITSCAN_HELP_MSG2 = '/unitscan toggle - вкл./откл. сканирование'
+	UNITSCAN_HELP_MSG3 = '/unitscan pause <#> - устанавливает паузу сканирвоания на # [секунд]'
+	UNITSCAN_HELP_MSG4 = '/unitscan db <db name> - устанавливает эту базу данных для сканирования'
+	UNITSCAN_HELP_MSG5 = '/unitscan <unit name> - добавляет/удаляет юнита из пользовательского листа'
+	UNITSCAN_HELP_MSG6 = '/unitscan - печать пользовательского листа'
+	UNITSCAN_HELP_MSG7 = 'ЛКМ на кнопке закрытия - просто закрывает окно оповещения. Но когда окно закрыто, аддон продолжает сканирование, и если юнит будет найден, этот окно будет отображено снова.'
+	UNITSCAN_HELP_MSG8 = 'ПКМ на кнопке закрытия - приостанавливает сканирование на'
+	UNITSCAN_SECONDS = 'секунд.'
+end

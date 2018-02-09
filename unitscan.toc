@@ -1,6 +1,13 @@
 ## Interface: 11200
-## Author: shirsig
 ## Title: unitscan
 ## Notes: Unit scanner with flashy alert
-## SavedVariables: unitscan_targets
+## Notes-ruRU: Аналог NPCScan.
+## Author: shirsig, Lichery
+## SavedVariables: unitscan_defaults, unitscan_targets
+
+db\db.xml
+
+locale\enUS.lua
+locale\ruRU.lua
+
 unitscan.lua

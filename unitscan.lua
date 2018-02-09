@@ -1,3 +1,4 @@
+local pause = 0
 local unitscan = CreateFrame'Frame'
 unitscan:SetScript('OnUpdate', function() unitscan.UPDATE() end)
 unitscan:SetScript('OnEvent', function() unitscan.LOAD() end)
@@ -8,6 +9,11 @@ local YELLOW = {1, 1, .15}
 local CHECK_INTERVAL = .1
 
 unitscan_targets = {}
+unitscan_defaults = {
+	scanpause = 60,
+	scanning = true,
+	database = 'enUS'
+}
 
 do
 	local last_played
@@ -16,8 +22,8 @@ do
 		if not last_played or GetTime() - last_played > 10 then -- 8
 			SetCVar('MasterSoundEffects', 0)
 			SetCVar('MasterSoundEffects', 1)
-			PlaySoundFile[[Interface\AddOns\unitscan\Event_wardrum_ogre.ogg]]
-			PlaySoundFile[[Interface\AddOns\unitscan\scourge_horn.ogg]]
+			PlaySoundFile[[Interface\AddOns\unitscan\media\Event_wardrum_ogre.ogg]]
+			PlaySoundFile[[Interface\AddOns\unitscan\media\scourge_horn.ogg]]
 			last_played = GetTime()
 		end
 	end
@@ -26,28 +32,37 @@ end
 function unitscan.check_for_targets()
 	for name, _ in unitscan_targets do
 		if unitscan.target(name) then
-			unitscan.toggle_target(name)
-			unitscan.play_sound()
-			unitscan.flash.animation:Play()
-			unitscan.button:set_target()
+			unitscan.found()
+		end
+	end
+	for name, _ in getglobal('unitscan_db_'..unitscan_defaults.database) do
+		if unitscan.target(name) then
+			unitscan.found()
 		end
 	end
 end
 
+function unitscan.found()
+	unitscan.play_sound()
+	unitscan.flash.animation:Play()
+	unitscan.button:set_target(UnitName'target')
+end
+
 do
 	local pass = function() end
-
+	
 	function unitscan.target(name)
 		local orig = UIErrorsFrame_OnEvent
 		UIErrorsFrame_OnEvent = pass
 		TargetByName(name, true)
 		UIErrorsFrame_OnEvent = orig
 		local target = UnitName'target'
-		return target and strupper(target) == name
+		return target and target == name
 	end
 end
 
 function unitscan.LOAD()
+	unitscan.print(UNITSCAN_LOADED)
 	do
 		local flash = CreateFrame'Frame'
 		unitscan.flash = flash
@@ -60,7 +75,7 @@ function unitscan.LOAD()
 		texture:SetBlendMode'ADD'
 		texture:SetAllPoints()
 		texture:SetTexture[[Interface\FullScreenTextures\LowHealth]]
-
+		
 		flash.animation = CreateFrame'Frame'
 		flash.animation:Hide()
 		flash.animation:SetScript('OnUpdate', function()
@@ -114,7 +129,7 @@ function unitscan.LOAD()
 		this:RegisterForClicks'LeftButtonDown'
 	end)
 	button:SetFrameStrata'FULLSCREEN_DIALOG'
-	button:SetNormalTexture[[Interface\AddOns\unitscan\UI-Achievement-Parchment-Horizontal]]
+	button:SetNormalTexture[[Interface\AddOns\unitscan\textures\UI-Achievement-Parchment-Horizontal]]
 	button:SetBackdrop{
 		tile = true,
 		edgeSize = 16,
@@ -130,12 +145,12 @@ function unitscan.LOAD()
 	button:SetScript('OnClick', function()
 		TargetByName(this:GetText(), true)
 	end)
-	function button:set_target()
-		self:SetText(UnitName'target')
-
+	function button:set_target(name)
+		self:SetText(name)
+		
 		self.model:reset()
 		self.model:SetUnit'target'
-
+		
 		self:Show()
 		self.glow.animation:Play()
 		self.shine.animation:Play()
@@ -152,26 +167,26 @@ function unitscan.LOAD()
 	
 	do
 		local title_background = button:CreateTexture(nil, 'BORDER')
-		title_background:SetTexture[[Interface\AddOns\unitscan\UI-Achievement-Title]]
+		title_background:SetTexture[[Interface\AddOns\unitscan\textures\UI-Achievement-Title]]
 		title_background:SetPoint('TOPRIGHT', -5, -5)
 		title_background:SetPoint('LEFT', 5, 0)
 		title_background:SetHeight(18)
 		title_background:SetTexCoord(0, .9765625, 0, .3125)
 		title_background:SetAlpha(.8)
-
+		
 		local title = button:CreateFontString(nil, 'OVERLAY')
 		title:SetFont([[Fonts\FRIZQT__.TTF]], 14)
 		title:SetShadowOffset(1, -1)
 		title:SetPoint('TOPLEFT', title_background, 0, 0)
 		title:SetPoint('RIGHT', title_background)
 		button:SetFontString(title)
-
+		
 		local subtitle = button:CreateFontString(nil, 'OVERLAY')
 		subtitle:SetFont([[Fonts\FRIZQT__.TTF]], 9)
 		subtitle:SetTextColor(0, 0, 0)
 		subtitle:SetPoint('TOPLEFT', title, 'BOTTOMLEFT', 0, -4)
 		subtitle:SetPoint('RIGHT', title )
-		subtitle:SetText'Unit Found!'
+		subtitle:SetText(UNITSCAN_FOUND)
 	end
 	
 	do
@@ -220,6 +235,15 @@ function unitscan.LOAD()
 		close:SetHeight(32)
 		close:SetScale(.8)
 		close:SetHitRectInsets(8, 8, 8, 8)
+		close:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+		close:SetScript('OnClick', function()
+			if arg1 == "RightButton" then
+				button:Hide()
+				pause = unitscan_defaults.scanpause
+			elseif arg1 == "LeftButton" then
+				button:Hide()
+			end
+		end)
 	end
 	
 	do
@@ -228,11 +252,11 @@ function unitscan.LOAD()
 		glow:SetPoint('CENTER', button, 'CENTER')
 		glow:SetWidth(400 / 300 * button:GetWidth())
 		glow:SetHeight(171 / 70 * button:GetHeight())
-		glow:SetTexture[[Interface\AddOns\unitscan\UI-Achievement-Alert-Glow]]
+		glow:SetTexture[[Interface\AddOns\unitscan\textures\UI-Achievement-Alert-Glow]]
 		glow:SetBlendMode'ADD'
 		glow:SetTexCoord(0, .78125, 0, .66796875)
 		glow:SetAlpha(0)
-
+		
 		glow.animation = CreateFrame'Frame'
 		glow.animation:Hide()
 		glow.animation:SetScript('OnUpdate', function()
@@ -251,14 +275,14 @@ function unitscan.LOAD()
 			self:Show()
 		end
 	end
-
+	
 	do
 		local shine = button:CreateTexture(nil, 'ARTWORK')
 		button.shine = shine
 		shine:SetPoint('TOPLEFT', button, 0, 8)
 		shine:SetWidth(67 / 300 * button:GetWidth())
 		shine:SetHeight(1.28 * button:GetHeight())
-		shine:SetTexture[[Interface\AddOns\unitscan\UI-Achievement-Alert-Glow]]
+		shine:SetTexture[[Interface\AddOns\unitscan\textures\UI-Achievement-Alert-Glow]]
 		shine:SetBlendMode'ADD'
 		shine:SetTexCoord(.78125, .912109375, 0, .28125)
 		shine:SetAlpha(0)
@@ -294,7 +318,10 @@ end
 do
 	unitscan.last_check = GetTime()
 	function unitscan.UPDATE()
-		if GetTime() - unitscan.last_check >= CHECK_INTERVAL then
+		if unitscan_button:IsShown() then return end
+		local curInterval = GetTime() - unitscan.last_check
+		if unitscan_defaults.scanning and curInterval >= CHECK_INTERVAL and curInterval >= pause then
+			pause = 0
 			unitscan.last_check = GetTime()
 			unitscan.check_for_targets()
 		end
@@ -317,7 +344,7 @@ function unitscan.sorted_targets()
 end
 
 function unitscan.toggle_target(name)
-	local key = strupper(name)
+	local key = name
 	if unitscan_targets[key] then
 		unitscan_targets[key] = nil
 		unitscan.print('- ' .. key)
@@ -326,16 +353,54 @@ function unitscan.toggle_target(name)
 		unitscan.print('+ ' .. key)
 	end
 end
-	
+
 SLASH_UNITSCAN1 = '/unitscan'
-function SlashCmdList.UNITSCAN(parameter)
-	local _, _, name = strfind(parameter, '^%s*(.-)%s*$')
-	
-	if name == '' then
-		for _, key in ipairs(unitscan.sorted_targets()) do
-			unitscan.print(key)
+function SlashCmdList.UNITSCAN(arg)
+	if arg == 'toggle' then
+		if unitscan_defaults.scanning then
+			unitscan_defaults.scanning = false
+			unitscan.print(UNITSCAN_SCAN_OFF)
+		else
+			unitscan_defaults.scanning = true
+			unitscan.print(UNITSCAN_SCAN_ON)
 		end
+	elseif string.find(arg, 'pause') then
+		local _, _, value = string.find(arg, 'pause (%d+)')
+		unitscan_defaults.scanpause = tonumber(value)
+		unitscan.print(UNITSCAN_SCAN_PAUSE..' '..value)
+	elseif string.find(arg, 'db') then
+		local _, _, locale = string.find(arg, 'db (.+)')
+		local checkdb = getglobal('unitscan_db_'..locale)
+		if checkdb then
+			unitscan_defaults.database = locale
+			unitscan_db = checkdb
+			unitscan.print(UNITSCAN_DB..' '..locale)
+		else
+			unitscan.print(UNITSCAN_DB_NOT_SUPPORTED)
+		end
+	elseif arg == 'help' then
+		unitscan.print(UNITSCAN_HELP_MSG1)
+		unitscan.print(UNITSCAN_HELP_MSG2)
+		unitscan.print(UNITSCAN_HELP_MSG3)
+		unitscan.print(UNITSCAN_HELP_MSG4)
+		unitscan.print(UNITSCAN_HELP_MSG5)
+		unitscan.print(UNITSCAN_HELP_MSG6)
+		ChatFrame1:AddMessage(' ')
+		unitscan.print(UNITSCAN_HELP_MSG7)
+		unitscan.print(UNITSCAN_HELP_MSG8..' '..unitscan_defaults.scanpause..' '..UNITSCAN_SECONDS)
 	else
-		unitscan.toggle_target(name)
+		local _, _, name = strfind(arg, '^%s*(.-)%s*$')
+		
+		if name == '' then
+			for _, key in ipairs(unitscan.sorted_targets()) do
+				unitscan.print(key)
+			end
+		else
+			unitscan.toggle_target(unitscan.FirstToUpper(name))
+		end
 	end
+end
+
+function unitscan.FirstToUpper(str) -- first character UPPER case
+    return string.gsub(str, '^%l', string.upper)
 end
