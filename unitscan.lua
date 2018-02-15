@@ -6,10 +6,10 @@ unitscan:RegisterEvent'VARIABLES_LOADED'
 
 local BROWN = {.7, .15, .05}
 local YELLOW = {1, 1, .15}
-local CHECK_INTERVAL = .1
 
 unitscan_targets = {}
 unitscan_defaults = {
+	CHECK_INTERVAL = .5,
 	scanpause = 60,
 	scanning = true,
 	database = 'enUS'
@@ -30,9 +30,11 @@ do
 end
 
 function unitscan.check_for_targets()
-	for name, _ in unitscan_targets do
-		if unitscan.target(name) then
-			unitscan.found()
+	if next(unitscan_targets) then
+		for name, _ in unitscan_targets do
+			if unitscan.target(name) then
+				unitscan.found()
+			end
 		end
 	end
 	for name, _ in getglobal('unitscan_db_'..unitscan_defaults.database) do
@@ -320,7 +322,7 @@ do
 	function unitscan.UPDATE()
 		if unitscan_button:IsShown() then return end
 		local curInterval = GetTime() - unitscan.last_check
-		if unitscan_defaults.scanning and curInterval >= CHECK_INTERVAL and curInterval >= pause then
+		if unitscan_defaults.scanning and curInterval >= unitscan_defaults.CHECK_INTERVAL and curInterval >= pause then
 			pause = 0
 			unitscan.last_check = GetTime()
 			unitscan.check_for_targets()
@@ -378,6 +380,15 @@ function SlashCmdList.UNITSCAN(arg)
 		else
 			unitscan.print(UNITSCAN_DB_NOT_SUPPORTED)
 		end
+	elseif string.find(arg, 'interval') then
+		local _, _, value = string.find(arg, 'interval (.*)')
+		local interval = tonumber(value)
+		if interval then
+			unitscan_defaults.CHECK_INTERVAL = interval
+			unitscan.print(UNITSCAN_CHECK_INTERVAL..' '..interval..' '..UNITSCAN_SECONDS)
+		else
+			unitscan.print(UNITSCAN_NOT_VALID_INTERVAL)
+		end
 	elseif arg == 'help' then
 		unitscan.print(UNITSCAN_HELP_MSG1)
 		unitscan.print(UNITSCAN_HELP_MSG2)
@@ -385,9 +396,10 @@ function SlashCmdList.UNITSCAN(arg)
 		unitscan.print(UNITSCAN_HELP_MSG4)
 		unitscan.print(UNITSCAN_HELP_MSG5)
 		unitscan.print(UNITSCAN_HELP_MSG6)
-		ChatFrame1:AddMessage(' ')
 		unitscan.print(UNITSCAN_HELP_MSG7)
-		unitscan.print(UNITSCAN_HELP_MSG8..' '..unitscan_defaults.scanpause..' '..UNITSCAN_SECONDS)
+		ChatFrame1:AddMessage(' ')
+		unitscan.print(UNITSCAN_HELP_MSG8)
+		unitscan.print(UNITSCAN_HELP_MSG9..' '..unitscan_defaults.scanpause..' '..UNITSCAN_SECONDS)
 	else
 		local _, _, name = strfind(arg, '^%s*(.-)%s*$')
 		
